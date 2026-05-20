@@ -1,256 +1,424 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package constructoraempresa;
 
+import modulo1_seguridad.model.Usuario;
 import modulo1_seguridad.ui.LoginFrame;
-import modulo2_rrhh.ui.EmpleadoFrame;
-import modulo3_finanzas.ui.ClienteFrame;
-import modulo3_finanzas.ui.CotizacionFrame;
-import modulo3_finanzas.ui.PagoClienteFrame;
-import modulo4a_proyectos.ui.ProyectoFrame;
-import modulo4b_inventario.ui.InventarioFrame;
-import modulo4c_proveedores.ui.ProveedoresFrame;
-import modulo4d_subcontratistas.ui.SubcontratistasFrame;
+import modulo1_seguridad.dao.ProyectoDAO;
+import modulo1_seguridad.dao.EmpleadoDAO;
+import modulo1_seguridad.dao.ClienteDAO;
 
 import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
+import java.awt.event.*;
+import java.sql.SQLException;
+import java.util.Map;
 
-/**
- * Ventana Principal - Sistema de Gestión Empresarial
- * Tema: Azul Oscuro
- * @author Melani
- */
 public class ConstructoraEmpresa extends JFrame {
 
-    // COLORES AZUL OSCURO
-    private static final Color AZUL_OSCURO = new Color(15, 32, 60);
-    private static final Color AZUL_MEDIO = new Color(25, 50, 90);
-    private static final Color AZUL_CLARO = new Color(41, 84, 140);
-    private static final Color AZUL_ACENTO = new Color(52, 152, 219);
-    private static final Color BLANCO = Color.WHITE;
-    private static final Color TEXTO_OSCURO = new Color(50, 50, 50);
+    private Usuario usuarioActual;
 
-    public ConstructoraEmpresa() {
-        // CONFIGURAR FRAME
-        setTitle("CONSTRUCTORA EMPRESA - Sistema de Gestión");
+    // Colores
+    private static final Color BG_SIDEBAR  = new Color(248, 249, 250);
+    private static final Color BG_MAIN     = new Color(255, 255, 255);
+    private static final Color BG_CONTENT  = new Color(243, 244, 246);
+    private static final Color AZUL        = new Color(26, 86, 219);
+    private static final Color TEXTO       = new Color(17, 24, 39);
+    private static final Color TEXTO_MUTED = new Color(107, 114, 128);
+    private static final Color BORDE       = new Color(229, 231, 235);
+    private static final Color VERDE       = new Color(29, 158, 117);
+    private static final Color AMARILLO    = new Color(186, 117, 23);
+    private static final Color ROJO        = new Color(226, 75, 74);
+
+    private JPanel panelContenido;
+    private JLabel lblTopbarTitulo;
+    private JLabel lblTopbarSub;
+    private JLabel lblUsuarioTopbar;
+    private JPanel itemActivo;
+
+    public ConstructoraEmpresa(Usuario usuario) {
+        this.usuarioActual = usuario;
+
+        setTitle("ConstruSys - Sistema de Gestión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 850);
+        setSize(1300, 800);
         setLocationRelativeTo(null);
         setResizable(true);
-        setUndecorated(false);
 
-        // PANEL PRINCIPAL
-        JPanel panelPrincipal = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                GradientPaint gradient = new GradientPaint(
-                        0, 0, AZUL_OSCURO,
-                        0, getHeight(), AZUL_MEDIO
-                );
-                g2d.setPaint(gradient);
-                g2d.fillRect(0, 0, getWidth(), getHeight());
-            }
-        };
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) {}
 
-        panelPrincipal.setLayout(new BorderLayout(15, 15));
-        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_MAIN);
+        root.add(crearSidebar(), BorderLayout.WEST);
 
-        // ========================
-        // PANEL DE ENCABEZADO
-        // ========================
-        JPanel headerPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                GradientPaint gradient = new GradientPaint(
-                        0, 0, AZUL_CLARO,
-                        getWidth(), 0, AZUL_ACENTO
-                );
-                g2d.setPaint(gradient);
-                g2d.fillRect(0, 0, getWidth(), getHeight());
-            }
-        };
+        JPanel mainArea = new JPanel(new BorderLayout());
+        mainArea.setBackground(BG_CONTENT);
+        mainArea.add(crearTopbar(), BorderLayout.NORTH);
 
-        headerPanel.setLayout(new BorderLayout());
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        headerPanel.setPreferredSize(new Dimension(0, 80));
+        panelContenido = new JPanel(new BorderLayout());
+        panelContenido.setBackground(BG_CONTENT);
+        panelContenido.add(crearVistaDashboard(), BorderLayout.CENTER);
+        mainArea.add(panelContenido, BorderLayout.CENTER);
 
-        JLabel lblTitulo = new JLabel("🏢 CONSTRUCTORA EMPRESA - MÓDULOS");
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 28));
-        lblTitulo.setForeground(BLANCO);
-
-        JLabel lblSubtitulo = new JLabel("Sistema Integrado de Gestión Empresarial");
-        lblSubtitulo.setFont(new Font("Arial", Font.PLAIN, 12));
-        lblSubtitulo.setForeground(new Color(200, 200, 200));
-
-        JPanel panelTitulos = new JPanel(new GridLayout(2, 1));
-        panelTitulos.setOpaque(false);
-        panelTitulos.add(lblTitulo);
-        panelTitulos.add(lblSubtitulo);
-
-        headerPanel.add(panelTitulos, BorderLayout.WEST);
-
-        panelPrincipal.add(headerPanel, BorderLayout.NORTH);
-
-        // ========================
-        // PANEL DE MÓDULOS (GRID)
-        // ========================
-        JPanel panelModulos = new JPanel(new GridLayout(3, 3, 15, 15));
-        panelModulos.setOpaque(false);
-        panelModulos.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // MÓDULOS
-        panelModulos.add(crearModulo("🔐 SEGURIDAD", "Login y Autenticación", 
-                () -> new LoginFrame().setVisible(true), new Color(30, 60, 100)));
-        
-        panelModulos.add(crearModulo("👥 EMPLEADOS", "Gestión de RR.HH.", 
-                () -> new EmpleadoFrame().setVisible(true), new Color(35, 70, 110)));
-        
-        panelModulos.add(crearModulo("👤 CLIENTES", "Gestión de Clientes", 
-                () -> new ClienteFrame().setVisible(true), new Color(40, 75, 120)));
-        
-        panelModulos.add(crearModulo("📋 COTIZACIONES", "Gestión de Cotizaciones", 
-                () -> new CotizacionFrame().setVisible(true), new Color(30, 70, 110)));
-        
-        panelModulos.add(crearModulo("💰 PAGOS", "Gestión de Pagos", 
-                () -> new PagoClienteFrame().setVisible(true), new Color(35, 75, 115)));
-        
-        panelModulos.add(crearModulo("🏢 PROYECTOS", "Gestión de Proyectos", 
-                () -> new ProyectoFrame().setVisible(true), new Color(40, 70, 110)));
-        
-        panelModulos.add(crearModulo("📦 INVENTARIO", "Gestión de Materiales", 
-                () -> new InventarioFrame().setVisible(true), new Color(30, 65, 105)));
-        
-        panelModulos.add(crearModulo("🏭 PROVEEDORES", "Gestión de Proveedores", 
-                () -> new ProveedoresFrame().setVisible(true), new Color(35, 70, 110)));
-        
-        panelModulos.add(crearModulo("🔧 SUBCONTRATISTAS", "Gestión de Subcontratistas", 
-                () -> new SubcontratistasFrame().setVisible(true), new Color(40, 75, 120)));
-
-        panelPrincipal.add(panelModulos, BorderLayout.CENTER);
-
-        // ========================
-        // PANEL DE PIE
-        // ========================
-        JPanel footerPanel = new JPanel();
-        footerPanel.setOpaque(false);
-        footerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        JLabel lblFooter = new JLabel("© 2026 Constructora Empresa - Sistema Integrado v1.0");
-        lblFooter.setFont(new Font("Arial", Font.ITALIC, 11));
-        lblFooter.setForeground(new Color(150, 150, 150));
-        footerPanel.add(lblFooter);
-
-        panelPrincipal.add(footerPanel, BorderLayout.SOUTH);
-
-        add(panelPrincipal);
+        root.add(mainArea, BorderLayout.CENTER);
+        add(root);
     }
 
-    /**
-     * Crea un módulo (panel clickeable)
-     */
-    private JPanel crearModulo(String titulo, String descripcion, Runnable accion, Color colorBase) {
+    // =========================================================
+    // SIDEBAR
+    // =========================================================
+    private JPanel crearSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setPreferredSize(new Dimension(210, 0));
+        sidebar.setBackground(BG_SIDEBAR);
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDE));
+
+        // Logo
+        JPanel logo = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 14));
+        logo.setBackground(BG_SIDEBAR);
+        logo.setMaximumSize(new Dimension(210, 58));
+        logo.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDE));
+        JLabel ico = new JLabel("HH");
+        ico.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        ico.setForeground(Color.WHITE);
+        ico.setBackground(AZUL);
+        ico.setOpaque(true);
+        ico.setPreferredSize(new Dimension(28, 28));
+        ico.setHorizontalAlignment(SwingConstants.CENTER);
+        JPanel tl = new JPanel();
+        tl.setLayout(new BoxLayout(tl, BoxLayout.Y_AXIS));
+        tl.setBackground(BG_SIDEBAR);
+        JLabel nm = new JLabel("ConstruSys");
+        nm.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        nm.setForeground(TEXTO);
+        JLabel sb2 = new JLabel("Panel de gestion");
+        sb2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        sb2.setForeground(TEXTO_MUTED);
+        tl.add(nm); tl.add(sb2);
+        logo.add(ico); logo.add(tl);
+        sidebar.add(logo);
+
+        sidebar.add(sec("PRINCIPAL"));
+        JPanel itemDash = item(">> ", "Dashboard", () -> navegar("Dashboard general", "Resumen ejecutivo del sistema", crearVistaDashboard()));
+        marcarActivo(itemDash);
+        sidebar.add(itemDash);
+
+        sidebar.add(sec("PROYECTOS"));
+        sidebar.add(item("[] ", "Proyectos", () -> {
+            try {
+                Object[][] data = ProyectoDAO.obtenerProyectosTabla();
+                String[] cols = {"ID", "Nombre", "Estado", "Centro Costo", "Inicio", "Fin", "Costo (Bs)"};
+                navegar("Proyectos", "Gestión de proyectos desde BD", crearVistaTabla("Proyectos", cols, data));
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Error al cargar proyectos", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }));
+
+        sidebar.add(sec("CLIENTES"));
+        sidebar.add(item("@ ", "Clientes", () -> {
+            try {
+                Object[][] data = ClienteDAO.obtenerClientesTabla();
+                String[] cols = {"ID", "Nombre", "CI/NIT", "Teléfono", "Correo", "Ciudad", "Estado"};
+                navegar("Clientes", "Gestión de clientes desde BD", crearVistaTabla("Clientes", cols, data));
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Error al cargar clientes", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }));
+
+        sidebar.add(sec("RRHH"));
+        sidebar.add(item("OO ", "Empleados", () -> {
+            try {
+                Object[][] data = EmpleadoDAO.obtenerEmpleadosTabla();
+                String[] cols = {"ID", "Nombre", "Cargo", "Departamento", "Teléfono", "Salario (Bs)", "Estado"};
+                navegar("Empleados", "Gestión de recursos humanos desde BD", crearVistaTabla("Empleados", cols, data));
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Error al cargar empleados", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }));
+
+        sidebar.add(Box.createVerticalGlue());
+        return sidebar;
+    }
+
+    private JLabel sec(String texto) {
+        JLabel l = new JLabel(texto);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        l.setForeground(TEXTO_MUTED);
+        l.setBorder(BorderFactory.createEmptyBorder(14, 14, 4, 0));
+        l.setMaximumSize(new Dimension(210, 30));
+        return l;
+    }
+
+    private JPanel item(String prefix, String texto, Runnable accion) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 7));
+        p.setMaximumSize(new Dimension(210, 36));
+        p.setBackground(BG_SIDEBAR);
+        p.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        p.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+        JLabel lbl = new JLabel(texto);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lbl.setForeground(TEXTO_MUTED);
+        p.add(lbl);
+        p.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { if (itemActivo != p) p.setBackground(new Color(240,242,245)); }
+            public void mouseExited(MouseEvent e)  { if (itemActivo != p) p.setBackground(BG_SIDEBAR); }
+            public void mouseClicked(MouseEvent e) { marcarActivo(p); accion.run(); }
+        });
+        return p;
+    }
+
+    private void marcarActivo(JPanel nuevo) {
+        if (itemActivo != null) {
+            itemActivo.setBackground(BG_SIDEBAR);
+            for (Component c : itemActivo.getComponents())
+                if (c instanceof JLabel) ((JLabel)c).setForeground(TEXTO_MUTED);
+        }
+        itemActivo = nuevo;
+        nuevo.setBackground(BG_MAIN);
+        for (Component c : nuevo.getComponents())
+            if (c instanceof JLabel) { ((JLabel)c).setForeground(TEXTO); ((JLabel)c).setFont(new Font("Segoe UI",Font.BOLD,13)); }
+    }
+
+    // =========================================================
+    // TOPBAR
+    // =========================================================
+    private JPanel crearTopbar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setBackground(BG_MAIN);
+        bar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0,0,1,0,BORDE),
+            BorderFactory.createEmptyBorder(12,20,12,20)
+        ));
+        bar.setPreferredSize(new Dimension(0, 62));
+
+        JPanel izq = new JPanel();
+        izq.setLayout(new BoxLayout(izq, BoxLayout.Y_AXIS));
+        izq.setBackground(BG_MAIN);
+        lblTopbarTitulo = new JLabel("Dashboard general");
+        lblTopbarTitulo.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        lblTopbarTitulo.setForeground(TEXTO);
+        lblTopbarSub = new JLabel("Resumen ejecutivo del sistema");
+        lblTopbarSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblTopbarSub.setForeground(TEXTO_MUTED);
+        izq.add(lblTopbarTitulo);
+        izq.add(lblTopbarSub);
+
+        JPanel der = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        der.setBackground(BG_MAIN);
         
-        JPanel modulo = new JPanel() {
-            private boolean hovered = false;
+        lblUsuarioTopbar = new JLabel(usuarioActual.getNombre() + " (" + usuarioActual.getRol() + ")");
+        lblUsuarioTopbar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblUsuarioTopbar.setForeground(TEXTO_MUTED);
+        der.add(lblUsuarioTopbar);
+        
+        JButton btnCerrar = crearBoton("Cerrar Sesión", false);
+        btnCerrar.addActionListener(e -> cerrarSesion());
+        der.add(btnCerrar);
 
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
-                        RenderingHints.VALUE_ANTIALIAS_ON);
+        bar.add(izq, BorderLayout.WEST);
+        bar.add(der, BorderLayout.EAST);
+        return bar;
+    }
 
-                // FONDO CON GRADIENTE
-                GradientPaint gradient = new GradientPaint(
-                        0, 0, colorBase,
-                        0, getHeight(), new Color(colorBase.getRed() - 10, 
-                                colorBase.getGreen() - 10, colorBase.getBlue() - 10)
-                );
-                g2d.setPaint(gradient);
+    private void cerrarSesion() {
+        int option = JOptionPane.showConfirmDialog(this, "¿Deseas cerrar sesión?", "Cerrar Sesión", JOptionPane.YES_NO_OPTION);
+        if (option == JOptionPane.YES_OPTION) {
+            SwingUtilities.invokeLater(() -> {
+                new LoginFrame().setVisible(true);
+                dispose();
+            });
+        }
+    }
 
-                RoundRectangle2D rounded = new RoundRectangle2D.Float(
-                        0, 0, getWidth() - 1, getHeight() - 1, 20, 20
-                );
-                g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+    private JButton crearBoton(String texto, boolean primario) {
+        JButton btn = new JButton(texto);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        if (primario) {
+            btn.setBackground(AZUL);
+            btn.setForeground(Color.WHITE);
+            btn.setOpaque(true);
+            btn.setBorderPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(7,14,7,14));
+        } else {
+            btn.setBackground(BG_MAIN);
+            btn.setForeground(TEXTO);
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDE),
+                BorderFactory.createEmptyBorder(6,12,6,12)
+            ));
+        }
+        return btn;
+    }
 
-                // BORDE
-                if (hovered) {
-                    g2d.setColor(new Color(255, 193, 7)); // Amarillo hover
-                    g2d.setStroke(new BasicStroke(3));
-                } else {
-                    g2d.setColor(AZUL_ACENTO);
-                    g2d.setStroke(new BasicStroke(2));
-                }
-                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
-            }
+    // =========================================================
+    // NAVEGACION INTERNA
+    // =========================================================
+    private void navegar(String titulo, String sub, JPanel vista) {
+        lblTopbarTitulo.setText(titulo);
+        lblTopbarSub.setText(sub);
+        panelContenido.removeAll();
+        panelContenido.add(vista, BorderLayout.CENTER);
+        panelContenido.revalidate();
+        panelContenido.repaint();
+    }
+
+    // =========================================================
+    // VISTA DASHBOARD
+    // =========================================================
+    private JPanel crearVistaDashboard() {
+        JPanel dash = new JPanel();
+        dash.setLayout(new BoxLayout(dash, BoxLayout.Y_AXIS));
+        dash.setBackground(BG_CONTENT);
+        dash.setBorder(BorderFactory.createEmptyBorder(20,24,20,24));
+
+        try {
+            Map<String, String> stats = ProyectoDAO.obtenerEstadisticas();
+            
+            JPanel metricas = new JPanel(new GridLayout(1,4,14,0));
+            metricas.setBackground(BG_CONTENT);
+            metricas.setMaximumSize(new Dimension(Integer.MAX_VALUE, 115));
+            metricas.add(metrica("PROYECTOS ACTIVOS", stats.get("proyectos_activos"), "Datos en tiempo real", AZUL, new Color(230,241,251)));
+            metricas.add(metrica("INGRESOS COBRADOS", stats.get("ingresos_cobrados"), "Últimos 30 días", VERDE, new Color(225,245,238)));
+            metricas.add(metrica("EMPLEADOS ACTIVOS", stats.get("empleados_activos"), "Datos en tiempo real", new Color(83,74,183), new Color(238,237,254)));
+            metricas.add(metrica("MATERIALES BAJO STOCK", stats.get("materiales_bajo_stock"), "Requiere reposición", AMARILLO, new Color(250,238,218)));
+            dash.add(metricas);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al cargar estadísticas", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        dash.add(Box.createVerticalStrut(18));
+        return dash;
+    }
+
+    private JPanel metrica(String label, String valor, String sub, Color colorSub, Color bgIco) {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(BG_MAIN);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDE),
+            BorderFactory.createEmptyBorder(14,16,14,16)
+        ));
+        JPanel icoPanel = new JPanel();
+        icoPanel.setBackground(bgIco);
+        icoPanel.setMaximumSize(new Dimension(36,36));
+        icoPanel.setPreferredSize(new Dimension(36,36));
+        icoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lLbl = new JLabel(label);
+        lLbl.setFont(new Font("Segoe UI",Font.BOLD,10));
+        lLbl.setForeground(TEXTO_MUTED);
+        lLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lVal = new JLabel(valor);
+        lVal.setFont(new Font("Segoe UI",Font.BOLD,22));
+        lVal.setForeground(TEXTO);
+        lVal.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lSub = new JLabel(sub);
+        lSub.setFont(new Font("Segoe UI",Font.PLAIN,11));
+        lSub.setForeground(colorSub);
+        lSub.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(icoPanel);
+        card.add(Box.createVerticalStrut(8));
+        card.add(lLbl);
+        card.add(Box.createVerticalStrut(3));
+        card.add(lVal);
+        card.add(Box.createVerticalStrut(4));
+        card.add(lSub);
+        return card;
+    }
+
+    // =========================================================
+    // VISTA TABLA REUTILIZABLE
+    // =========================================================
+    private JPanel crearVistaTabla(String titulo, String[] cols, Object[][] data) {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(BG_CONTENT);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(20,24,20,24));
+
+        JPanel card = new JPanel(new BorderLayout(0,12));
+        card.setBackground(BG_MAIN);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDE),
+            BorderFactory.createEmptyBorder(16,16,16,16)
+        ));
+
+        // Header
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(BG_MAIN);
+        JLabel lTit = new JLabel(titulo);
+        lTit.setFont(new Font("Segoe UI",Font.BOLD,15));
+        lTit.setForeground(TEXTO);
+
+        JTextField buscar = new JTextField(20);
+        buscar.setFont(new Font("Segoe UI",Font.PLAIN,12));
+        buscar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDE),
+            BorderFactory.createEmptyBorder(5,10,5,10)
+        ));
+        JLabel lBuscar = new JLabel("  Buscar: ");
+        lBuscar.setForeground(TEXTO_MUTED);
+        JPanel hDer = new JPanel(new FlowLayout(FlowLayout.RIGHT,4,0));
+        hDer.setBackground(BG_MAIN);
+        hDer.add(lBuscar); hDer.add(buscar);
+        header.add(lTit, BorderLayout.WEST);
+        header.add(hDer, BorderLayout.EAST);
+
+        // Tabla
+        DefaultTableModel model = new DefaultTableModel(data, cols) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
+        JTable tabla = new JTable(model);
+        tabla.setFont(new Font("Segoe UI",Font.PLAIN,12));
+        tabla.setRowHeight(28);
+        tabla.setShowGrid(true);
+        tabla.setGridColor(BORDE);
+        tabla.setSelectionBackground(new Color(230,241,251));
+        tabla.setSelectionForeground(TEXTO);
+        tabla.setForeground(TEXTO);
+        tabla.setBackground(BG_MAIN);
+        tabla.setIntercellSpacing(new Dimension(10,0));
 
-        modulo.setOpaque(false);
-        modulo.setLayout(new BoxLayout(modulo, BoxLayout.Y_AXIS));
-        modulo.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        modulo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JTableHeader th = tabla.getTableHeader();
+        th.setFont(new Font("Segoe UI",Font.BOLD,12));
+        th.setBackground(BG_CONTENT);
+        th.setForeground(TEXTO_MUTED);
+        th.setBorder(BorderFactory.createMatteBorder(0,0,1,0,BORDE));
+        th.setReorderingAllowed(false);
 
-        // EVENTOS DE MOUSE
-        modulo.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                ((JPanel) e.getSource()).repaint();
-                modulo.setBackground(new Color(50, 100, 150, 20));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                ((JPanel) e.getSource()).repaint();
-                modulo.setBackground(new Color(0, 0, 0, 0));
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                accion.run();
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        tabla.setRowSorter(sorter);
+        buscar.addKeyListener(new KeyAdapter() {
+            public void keyReleased(KeyEvent e) {
+                String t = buscar.getText().trim();
+                sorter.setRowFilter(t.isEmpty() ? null : RowFilter.regexFilter("(?i)"+t));
             }
         });
 
-        // TÍTULO
-        JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
-        lblTitulo.setForeground(BLANCO);
-        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JScrollPane scroll = new JScrollPane(tabla);
+        scroll.setBorder(BorderFactory.createLineBorder(BORDE));
+        scroll.getViewport().setBackground(BG_MAIN);
 
-        // DESCRIPCIÓN
-        JLabel lblDesc = new JLabel(descripcion);
-        lblDesc.setFont(new Font("Arial", Font.PLAIN, 12));
-        lblDesc.setForeground(new Color(200, 200, 200));
-        lblDesc.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        modulo.add(Box.createVerticalStrut(10));
-        modulo.add(lblTitulo);
-        modulo.add(Box.createVerticalStrut(15));
-        modulo.add(lblDesc);
-        modulo.add(Box.createVerticalGlue());
-
-        return modulo;
+        card.add(header, BorderLayout.NORTH);
+        card.add(scroll,  BorderLayout.CENTER);
+        wrapper.add(card, BorderLayout.CENTER);
+        return wrapper;
     }
 
+    // =========================================================
+    // MAIN
+    // =========================================================
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            ConstructoraEmpresa app = new ConstructoraEmpresa();
-            app.setVisible(true);
+            try {
+                // Para prueba rápida sin login
+                Usuario usuarioTemp = new Usuario(1, "admin", "Administrador", "admin@constructora.com", "admin123", "Administrador", "Activo");
+                new ConstructoraEmpresa(usuarioTemp).setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
     }
 }
